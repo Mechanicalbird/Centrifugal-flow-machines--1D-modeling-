@@ -1,0 +1,839 @@
+{Functions}
+
+{Static Tempreture Calculator}
+Function T_static ( T_stagnation , P_stagnation , C_abselut )
+CP :=CP(Air_ha,T=T_stagnation,P=P_stagnation)
+T_1:=T_stagnation
+N:=1
+Repeat
+N:=N+1
+T_1:=T_stagnation - ((C_abselut^2)/(2*(CP*convert(kJ/(kg*k),J/(kg*K)))))
+CP :=CP(Air_ha,T=T_1,P=P_stagnation)
+Until (N=25)
+T_static:=T_1
+End
+
+"++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+
+{Stagnation Tempreture Calculator}
+Function T_stagnation ( T_2 , S_1 , C_2)
+CP :=CP(Air_ha,T=T_2,S=S_1)
+
+N:=1
+Repeat
+N:=N+1
+T_stagnation:=T_2 +((C_2^2)/(2*(CP*convert(kJ/(kg*k),J/(kg*K)))))
+CP :=CP(Air_ha,T=T_stagnation,S=S_1)
+Until (N=25)
+
+End
+"+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+
+Procedure Real_discharge (m_dot_1,A_5,beta_5,T_stagnation_2_real,h_5_stegnation_real,rho_5_real:C_n5_real,C_5_real,C_u5_real,T_5_real)
+
+C_n5_real := m_dot_1/(A_5*rho_5_real)
+C_5_real := C_n5_real/sin(beta_5)
+C_u5_real:=C_5_real*cos(beta_5)
+T_stagnation_5_real = T_stagnation_2_real
+T_5_real:=T_stagnation_5_real
+
+N:=1
+Repeat
+N:=N+1
+CP :=CP(Air_ha,T=T_5_real,v=1/rho_5_real)
+T_5_real:=T_stagnation_5_real - ((C_5_real ^2)/(2*(CP*convert(kJ/(kg*k),J/(kg*K)))))
+Until (N=25)
+
+
+End
+
+
+
+"++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+Procedure inlet_throut (r_1,Z_fb,t_blade_inlet,beta_1,r_inlet_outer,r_inlet_iner,U_1,m_dot_1,T_stagnation_1,S_1:rho_th_1,W_th_inlet,W_u_th_inlet,W_n_th_inlet,T_th_1)
+
+rho_assumed := 1
+11:rho_assumed:=rho_assumed+0.01
+h_th_inlet = (((pi*(r_inlet_iner+r_inlet_outer ))/Z_fb)-(t_blade_inlet*Z_fb))*cos(abs(90-beta_1))
+A_th_inlet = h_th_inlet * (r_inlet_outer-r_inlet_iner)
+W_u_th_inlet= U_1
+W_n_th_inlet=m_dot_1/(rho_assumed*(Z_fb)*A_th_inlet)
+W_th_inlet = (W_n_th_inlet^2+W_u_th_inlet^2)^0.5
+
+
+N:=1
+T_th_1:=T_stagnation_1
+
+Repeat
+N:=N+1
+CP :=CP(Air_ha,T=T_th_1,S=S_1)
+T_th_1:=T_stagnation_1 - ((W_th_inlet ^2)/(2*(CP*convert(kJ/(kg*k),J/(kg*K)))))
+Until (N=25)
+
+rho_assumed_2:=DENSITY(Air_ha,T=T_th_1,S=S_1)
+
+Tolerance_th := (rho_assumed-rho_assumed_2)
+If (Tolerance_th>-1) And (Tolerance_th<1) then
+rho_th_1:=rho_assumed_2
+Else
+GoTo 11
+EndIf
+
+End
+
+
+"++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+
+
+Procedure outlet_throut (r_outlet_2,Z_fb,Z_sb,t_blade_outlet,beta_2,b_2,U_2,m_dot_1,T_stagnation_2,S_1:rho_th_2,W_th_outlet,W_u_th_outlet,W_n_th_outlet,T_th_2,h_th_outlet,A_th_outlet)
+
+rho_assumed := 1
+11:rho_assumed:=rho_assumed+0.01
+h_th_outlet = (((2*pi*r_outlet_2)/(Z_fb+Z_sb))-(t_blade_outlet *(Z_fb+Z_sb)))*cos(abs(90-beta_2))*cos(abs(90-beta_2)) 
+A_th_outlet = h_th_outlet *b_2
+W_u_th_outlet = U_2 
+W_n_th_outlet=m_dot_1/(rho_assumed*(Z_fb+Z_sb)*A_th_outlet)
+W_th_outlet = (W_n_th_outlet^2+W_u_th_outlet^2)^0.5
+
+
+N:=1
+T_th_2:=T_stagnation_2
+Repeat
+N:=N+1
+CP :=CP(Air_ha,T=T_th_2,S=S_1)
+T_th_2:=T_stagnation_2 - ((W_th_outlet ^2)/(2*(CP*convert(kJ/(kg*k),J/(kg*K)))))
+Until (N=25)
+
+rho_assumed_2:=DENSITY(Air_ha,T=T_th_2,S=S_1)
+
+Tolerance_th := (rho_assumed-rho_assumed_2)
+If (Tolerance_th>-1) And (Tolerance_th<1) then
+rho_th_2:=rho_assumed_2
+Else
+GoTo 11
+EndIf
+
+End
+
+"+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+Procedure venless_diffuser (r_venless_out,b_venless_out,m_dot_1,S_1,C_u2,T_stagnation_2:C_n3,C_u3, C_3,T_stagnation_3,T_3,rho_3,A_3)
+
+rho_assumed := 1
+A_3 = 2*pi*r_venless_out*b_venless_out
+
+15:rho_assumed:= rho_assumed +0.01
+C_n3 := m_dot_1 /(A_3*rho_assumed)
+C_u3 := C_u2
+ C_3:= ((C_u3^2)+(C_n3^2))^0.5
+T_stagnation_3:=T_stagnation_2
+
+N:=1
+T_3:=T_stagnation_3
+Repeat
+N:=N+1
+CP :=CP(Air_ha,T=T_3,S=S_1)
+T_3:=T_stagnation_3 - ((C_3 ^2)/(2*(CP*convert(kJ/(kg*k),J/(kg*K)))))
+Until (N=25)
+rho_assumed_2:=DENSITY(Air_ha,T=T_3,S=S_1)
+
+Tolerance_3 := (rho_assumed-rho_assumed_2)
+If (Tolerance_3>-0.1) And (Tolerance_3<0.1) then
+rho_3:=rho_assumed_2
+Else
+GoTo 15
+EndIf
+
+End
+
+"++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+
+Procedure vened_inlet_diffuser (beta_4,r_vaned_inlet,b_vaned_inlet,Z_diffuser,m_dot_1,T_stagnation_3,S_1,C_u3,t_vaned_inlet:A_4,C_n4,C_u4,C_4,T_stagnation_4,T_4,rho_4)
+
+rho_assumed := 1
+A_4 = (2*pi*r_vaned_inlet*b_vaned_inlet)-(t_vaned_inlet*Z_diffuser*b_vaned_inlet)
+
+18:rho_assumed:= rho_assumed +0.01
+C_n4 := m_dot_1 /(A_4*rho_assumed)
+C_u4 := C_n4/TAN(beta_4) 
+T_stagnation_4:=T_stagnation_3
+C_4:= ((C_u4^2)+(C_n4^2))^0.5
+N:=1
+T_4:=T_stagnation_4
+Repeat
+N:=N+1
+CP :=CP(Air_ha,T=T_4,S=S_1)
+T_4:=T_stagnation_4 - ((C_4 ^2)/(2*(CP*convert(kJ/(kg*k),J/(kg*K)))))
+Until (N=25)
+rho_assumed_2:=DENSITY(Air_ha,T=T_4,S=S_1)
+
+Tolerance_4 := (rho_assumed-rho_assumed_2)
+If (Tolerance_4>-0.1) And (Tolerance_4<0.1) then
+rho_4:=rho_assumed_2
+Else
+GoTo 18
+EndIf
+
+End
+
+
+ "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+
+Procedure vened_outlet_diffuser (r_vaned_outlet,b_vaned_outlet,Z_diffuser,t_vaned_outlet,m_dot_1,T_stagnation_4,beta_5,S_1:A_5,C_n5,C_5,C_u5,T_5,T_stagnation_5,rho_5)
+
+rho_assumed := 1
+A_5 = (2*pi*r_vaned_outlet*b_vaned_outlet)-(t_vaned_outlet*Z_diffuser*b_vaned_outlet)
+
+20:rho_assumed:= rho_assumed +0.01
+C_n5 := m_dot_1 /(A_5*rho_assumed)
+C_5 := C_n5/sin(beta_5)
+T_stagnation_5:=T_stagnation_4
+C_u5:=C_5*cos(beta_5)
+N:=1
+T_5:=T_stagnation_5
+Repeat
+N:=N+1
+CP :=CP(Air_ha,T=T_5,S=S_1)
+T_5:=T_stagnation_5 - ((C_5 ^2)/(2*(CP*convert(kJ/(kg*k),J/(kg*K)))))
+Until (N=25)
+rho_assumed_2:=DENSITY(Air_ha,T=T_5,S=S_1)
+
+Tolerance_5 := (rho_assumed-rho_assumed_2)
+If (Tolerance_5>-0.1) And (Tolerance_5<0.1) then
+rho_5:=rho_assumed_2
+Else
+GoTo 20
+EndIf
+
+End
+
+
+"+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+
+Procedure vened_throut_diffuser (beta_th_diff,t_vaned_inlet,h_th_diff,beta_4,A_4,Z_diffuser,b_vaned_inlet,m_dot_1,T_stagnation_3,S_1:A_th_diff,C_n_th_diff,C_th_diff,T_stagnation_th_diff,C_u_th_diff,T_th_diff,rho_th_diff)
+
+rho_assumed :=1
+A_th_diff= h_th_diff*b_vaned_inlet
+
+25:rho_assumed:= rho_assumed +0.01
+C_n_th_diff := m_dot_1 /(A_th_diff*rho_assumed*Z_diffuser)
+C_th_diff := C_n_th_diff/sin(beta_th_diff)
+T_stagnation_th_diff:=T_stagnation_3
+C_u_th_diff:=C_th_diff*cos(beta_th_diff)
+
+N:=1
+T_th_diff:=T_stagnation_th_diff
+Repeat
+N:=N+1
+CP :=CP(Air_ha,T=T_th_diff,S=S_1)
+T_th_diff:=T_stagnation_th_diff - ((C_th_diff ^2)/(2*(CP*convert(kJ/(kg*k),J/(kg*K)))))
+Until (N=25)
+rho_assumed_2:=DENSITY(Air_ha,T=T_th_diff,S=S_1)
+
+Tolerance_6 := (rho_assumed-rho_assumed_2)
+If (Tolerance_6>-0.1) And (Tolerance_6<0.1) then
+rho_th_diff:=rho_assumed_2
+Else
+GoTo 25
+EndIf
+
+End
+
+
+
+
+
+"++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+
+
+Procedure bakwerd_type_ideal (s_2P,rho_1P, m_dot_2P,A_2P,beta_2P,ZP,U_2_bladeP,h_bar_t2P: alpha_2,rho_2,U_2,C_2,C_n2,C_u2,sigma_impller,T_2 ) 
+ {assuming the idel discharged dencity}
+h_bar_t2_REAL=h_bar_t2P
+rho_assumed_2 := rho_1P
+Repeat
+rho_assumed_2 := rho_assumed_2+0.01
+
+{Calculating the idel discharged Tempreture}
+s_assumed_2:=s_2P "s_2 has to be inserted"
+T_assumed_2:=TEMPERATURE(Air_ha,S=s_assumed_2,V=(1/rho_assumed_2))
+
+{Calculating the bakwerd PARAMETERS}
+alpha_assumed_2=0
+beta_assumed_2 := beta_2P
+10:alpha_assumed_2:=alpha_assumed_2+0.01
+{Condition of the flow abselut angle}
+If (alpha_assumed_2 <= 90 ) and (alpha_assumed_2 >= beta_assumed_2) then
+
+m_dot_assumed_2 := m_dot_2P
+A_assumed_2 := A_2P 
+
+Z_assumed := ZP
+U_assumed_2_blade := U_2_bladeP
+{Calculation of the Slip Factor}
+sigma_assumed_assumed := 1- (((sin(beta_assumed_2))^0.5)*((sin(alpha_assumed_2))/(Z_assumed^0.7)))
+sigma_star_assumed := sin(19-(0.2*alpha_assumed_2))
+epsilon_assumed_lim := (sigma_assumed_assumed-sigma_star_assumed)/(1-sigma_star_assumed)
+epsilon_assumed_impller :=exp((-8.16*sin(beta_assumed_2))/Z_assumed )
+If(epsilon_assumed_impller <= epsilon_assumed_lim) then 
+sigma_assumed_impller=sigma_assumed_assumed 
+Else
+sigma_assumed_impller=sigma_assumed_assumed*(1-((epsilon_assumed_impller-epsilon_assumed_lim)/(1-epsilon_assumed_lim))^((beta_assumed_2/10)^0.5))
+EndIf
+{End of the Calculation of Slip Factor}
+{Calculation of the flow tangential velocity}
+U_assumed_2 := sigma_assumed_impller*U_assumed_2_blade
+Left:=m_dot_assumed_2/(rho_assumed_2*A_assumed_2)
+Right:=((U_assumed_2*sin(beta_assumed_2))/sin(abs(alpha_assumed_2-beta_assumed_2)))*sin(alpha_assumed_2)
+Tolerance1 := (Left-Right)
+If (Tolerance1>-1) And (Tolerance1<1) then
+alpha_2:=alpha_assumed_2
+U_2 =U_assumed_2
+Else
+GoTo 10
+EndIf
+
+Else
+alpha_assumed_2=beta_assumed_2
+9:alpha_assumed_2:=alpha_assumed_2+0.01
+m_dot_assumed_2 := m_dot_2P
+A_assumed_2 := A_2P 
+beta_assumed_2 := beta_2P
+Z_assumed := ZP
+U_assumed_2_blade := U_2_bladeP
+{Calculation of the Slip Factor}
+sigma_assumed_assumed := 1- (((sin(beta_assumed_2))^0.5)*((sin(alpha_assumed_2))/(Z_assumed^0.7)))
+sigma_star_assumed := sin(19-(0.2*alpha_assumed_2))
+epsilon_assumed_lim := (sigma_assumed_assumed-sigma_star_assumed)/(1-sigma_star_assumed)
+epsilon_assumed_impller :=exp((-8.16*sin(beta_assumed_2))/Z_assumed )
+If(epsilon_assumed_impller <= epsilon_assumed_lim) then 
+sigma_assumed_impller=sigma_assumed_assumed 
+Else
+sigma_assumed_impller=sigma_assumed_assumed*(1-((epsilon_assumed_impller-epsilon_assumed_lim)/(1-epsilon_assumed_lim))^((beta_assumed_2/10)^0.5))
+EndIf
+{End of the Calculation of Slip Factor}
+{Calculation of the flow tangential velocity}
+U_assumed_2 := sigma_assumed_impller*U_assumed_2_blade
+Left:=m_dot_assumed_2/(rho_assumed_2*A_assumed_2)
+Right:=((U_assumed_2*sin(beta_assumed_2))/sin(abs(alpha_assumed_2-beta_assumed_2)))*sin(180-alpha_assumed_2)
+Tolerance1 := (Left-Right)
+If (Tolerance1>-1) And (Tolerance1<1) then
+alpha_2:=alpha_assumed_2
+U_2 =U_assumed_2
+Else
+GoTo 9
+EndIf
+EndIf
+
+"Calculating the discharge velocity and its componantes"
+If (alpha_2 < 90) then
+C_2 =(U_assumed_2*sin(beta_2P))/sin(abs(alpha_2-beta_2P))
+C_n2 =C_2*sin(alpha_2)
+C_u2 = C_2*cos(alpha_2)
+Else
+C_2 =(U_assumed_2*sin(beta_2P))/sin(abs(alpha_2-beta_2P))
+C_n2 =C_2*sin(abs(180-alpha_2))
+C_u2 = C_2*cos(abs(180-alpha_2))
+EndIf
+
+
+"Cheak the assumed dencity"
+h_assumed_t2=ENTHALPY(Air_ha,T=T_assumed_2,V=(1/rho_assumed_2))+((C_2^2)/2000)
+h_assumed_bar_t2 = h_assumed_t2 - ((U_2*C_u2)/1000) + ((U_2^2)/2000)
+Tolerance2 := (h_assumed_bar_t2-h_bar_t2_REAL)
+If (Tolerance2>-1) And (Tolerance2<1) then
+Detector = 1
+Else
+Detector=0
+EndIf
+Until (Detector=1)
+
+rho_2 = rho_assumed_2
+sigma_impller=sigma_assumed_impller
+U_2 = U_assumed_2
+T_2=T_assumed_2
+END
+
+"====================================================================================================="
+
+Procedure Forwerd_type_ideal   (s_2P,rho_1P, m_dot_2P,A_2P,beta_2P,ZP,U_2_bladeP,h_bar_t2P: alpha_2,rho_2,U_2 ,C_2,C_n2,C_u2,sigma_impller,T_2)
+ {assuming the idel discharged dencity}
+h_bar_t2_REAL=h_bar_t2P
+rho_assumed_2 := rho_1P
+Repeat
+rho_assumed_2 := rho_assumed_2+0.01
+
+{Calculating the idel discharged Tempreture}
+s_assumed_2:=s_2P "s_2 has to be inserted"
+T_assumed_2:=TEMPERATURE(Air_ha,S=s_assumed_2,V=(1/rho_assumed_2))
+
+{Calculating the bakwerd PARAMETERS}
+alpha_assumed_2=0
+beta_assumed_2 := beta_2P
+10:alpha_assumed_2:=alpha_assumed_2+0.01
+{Condition of the flow abselut angle}
+
+m_dot_assumed_2 := m_dot_2P
+A_assumed_2 := A_2P 
+
+Z_assumed := ZP
+U_assumed_2_blade := U_2_bladeP
+{Calculation of the Slip Factor}
+sigma_assumed_assumed := 1- (((sin(beta_assumed_2))^0.5)*((sin(alpha_assumed_2))/(Z_assumed^0.7)))
+sigma_star_assumed := sin(19-(0.2*alpha_assumed_2))
+epsilon_assumed_lim := (sigma_assumed_assumed-sigma_star_assumed)/(1-sigma_star_assumed)
+epsilon_assumed_impller :=exp((-8.16*sin(beta_assumed_2))/Z_assumed )
+If(epsilon_assumed_impller <= epsilon_assumed_lim) then 
+sigma_assumed_impller=sigma_assumed_assumed 
+Else
+sigma_assumed_impller=sigma_assumed_assumed*(1-((epsilon_assumed_impller-epsilon_assumed_lim)/(1-epsilon_assumed_lim))^((beta_assumed_2/10)^0.5))
+EndIf
+{End of the Calculation of Slip Factor}
+{Calculation of the flow tangential velocity}
+U_assumed_2 := sigma_assumed_impller*U_assumed_2_blade
+Left:=m_dot_assumed_2/(rho_assumed_2*A_assumed_2)
+Right:=((U_assumed_2*sin(180-beta_assumed_2))/sin(abs(alpha_assumed_2-beta_assumed_2)))*sin(alpha_assumed_2)
+Tolerance1 := (Left-Right)
+If (Tolerance1>-1) And (Tolerance1<1) then
+alpha_2:=alpha_assumed_2
+U_2 =U_assumed_2
+Else
+GoTo 10
+EndIf
+
+
+
+"Calculating the discharge velocity and its componantes"
+
+C_2 =(U_assumed_2*sin(180-beta_2P))/sin(abs(alpha_2-beta_2P))
+C_n2 =C_2*sin(alpha_2)
+C_u2 = C_2*cos(alpha_2)
+
+
+"Cheak the assumed dencity"
+h_assumed_t2=ENTHALPY(Air_ha,T=T_assumed_2,V=(1/rho_assumed_2))+((C_2^2)/2000)
+h_assumed_bar_t2 = h_assumed_t2 - ((U_2*C_u2)/1000) + ((U_2^2)/2000)
+Tolerance2 := (h_assumed_bar_t2-h_bar_t2_REAL)
+If (Tolerance2>-1) And (Tolerance2<1) then
+Detector = 1
+Else
+Detector=0
+EndIf
+Until (Detector=1)
+
+rho_2 = rho_assumed_2
+sigma_impller=sigma_assumed_impller
+U_2 = U_assumed_2
+T_2=T_assumed_2
+
+END
+
+ "+++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+
+Procedure Blade_Type (y,s_2,rho_1, m_dot_2,A_2,beta_2,Z,U_2_blade,h_bar_t2: alpha_2,rho_2,U_2,C_2,C_n2,C_u2,sigma_impller,T_2 ) 
+
+If (y=1) then
+
+"If the blade is sweept bakwerd "
+
+CALL bakwerd_type_ideal   (s_2,rho_1, m_dot_2,A_2,beta_2,Z,U_2_blade,h_bar_t2 : alpha_2,rho_2,U_2 ,C_2,C_n2,C_u2,sigma_impller,T_2)
+"calculation the relative velocity and its componants"
+W_2 = (C_2*sin(180-alpha_2))/sin(beta_2)
+W_n2 = W_2*sin(beta_2)
+W_u2 = W_2*cos(beta_2)
+P_2 = PRESSURE(Air_ha,T=T_2,s=s_2)
+
+Else
+
+"If the blade is sweept Forwerd OR Strait tip"
+CALL Forwerd_type_ideal   (s_2,rho_1, m_dot_2,A_2,beta_2,Z,U_2_blade,h_bar_t2: alpha_2,rho_2,U_2 ,C_2,C_n2,C_u2,sigma_impller,T_2)
+"calculation the relative velocity and its componants"
+W_2 = (C_2*sin(alpha_2))/sin(180-beta_2)
+W_n2 = W_2*sin(beta_2)
+W_u2 = W_2*cos(beta_2)
+P_2 = PRESSURE(Air_ha,T=T_2,s=s_2)
+
+EndIf
+End
+"====================================================================================================="
+
+
+{Insert The Inlet Condetions }
+
+beta_blade1 = 40 [degree] "insert the inlet blade angle "  "has to be less than 90 "
+omega_1 = 60000 [rpm] " insert the rotational velocity"
+r_inlet_iner = 0.0125[m] "insert inlet iner radius"
+r_inlet_outer = 0.037 [m]  "Insert inlet outer radius "
+T_inlet_01=288 [K] "insert the inlet stagnation tempreture"
+P_inlet_01=101.15 [kPa] "insert the inlet stagnation Pressuer "
+alpha_1=1 [degree] "insert the inlet flow angle"
+Type$ =  'strait'     " insert the blade tip type"
+t_blade_inlet =0.0005 [m] "insert the blade thiknes at the inlet tip"
+
+{insert the outer Conditions}
+
+r_outlet_2 = 0.053 [m] "insert the outer radius"
+b_2 = 0.01 [m] "insert the hup to shroud width"
+beta_2 = 90 [degree] "insert the outer blade angle"
+Z_fb = 10 "insert the number of full blades"
+Z_sb =10 "insert the number of splitter blades"
+L_fb = 0.06 [m]"insert the full blade mean streamline meridianal length"
+L_sb =0.045 [m]"insert the full blade mean streamline meridianal length"
+t_blade_outlet =0.0005  [m]"insert the blade thiknes at the outlet tip"
+
+
+"insert the vaneless diffuser output dimensions "
+
+r_venless_out = 0.055[m]"insert the venless diffuser output radius "
+b_venless_out  = 0.01[m]"insert the venless diffuser output hight "
+
+"insert the vaned diffuser  dimensions "
+
+beta_4 = 30 [degree]"insert the vaned diffuser inlet angle"   {at the designed condition beta_4 has to be equal to alpha_3}
+beta_5 = 40 [degree]"insert the vaned diffuser outlet angle" 
+b_vaned_inlet = 0.01 [m]"insert the vaend diffuser inlet hight"
+t_vaned_inlet = 0.0005 [m]"insert the diffuser blade theknes at the inlet "
+b_vaned_outlet = 0.007 [m] "insert the vaend diffuser outlet hight"
+t_vaned_outlet = 0.01 [m]"insert the diffuser blade theknes at the outlet "
+r_vaned_inlet = 0.055  [m]"it has to be alwaes like that"
+r_vaned_outlet = 0.08 [m] "insert the vaned diffuser outlet radius "
+Z_diffuser = 19  "insert the number of vaned diffuser blades"
+h_th_diff = 0.015 [m] "insert the throut length"
+beta_th_diff=40 [degree]"insert the throut angle"
+L_MeanChanal_diff = 0.04  [m]"insert  the mean vanled diffuser length "
+l_cl = 0.003  [m] "insert the blade clerance"
+
+
+L_MeanChanal_i = L_fb "calulate  the mean blade chanal length "
+h_t01=ENTHALPY(Air_ha,T=T_inlet_01,P=P_inlet_01)
+
+{ The velocity triangle calulation }
+beta_1 = 90- beta_blade1
+r_1 =( r_inlet_iner+r_inlet_outer)/2
+U_1=(convert(rpm,rad/s)*omega_1)*((r_inlet_outer+r_inlet_iner )/2) "impeler speed at the inlet meredenal line"
+C_1 = (U_1/sin(abs((alpha_1)+(beta_1)))) * sin( 90 - (beta_1)) "flow abselut velocity"
+C_n1=C_1*cos(abs(alpha_1)) "flow normal velocity"
+C_u1=C_1*sin(abs(alpha_1)) "flow tangential velocity"
+W_1 = C_n1/cos(beta_1) "flow relative velocity"
+W_1_u=W_1*sin(beta_1) "tangential flow relative velocity"
+W_1_n = C_n1 "normal flow relative velocity"
+
+{get the dencity at stagnation Conditions}
+rho_01=DENSITY(Air_ha,T=T_inlet_01,P=P_inlet_01) "the inlet stagnation density"
+
+{Calculation of the inlet spacific entropy}
+s_01=ENTROPY(Air_ha,T=T_inlet_01,P=P_inlet_01) "inlet spacific entropy"
+s_01=s_1
+s_1=s_2
+
+{Calculation of the inlet area}
+A_1 = ((pi*((r_inlet_outer^2)-(r_inlet_iner^2)) ) -(t_blade_inlet*(r_inlet_outer-r_inlet_iner)*Z_fb))     "inlet Area"
+
+{Calculation of the inlet static Tempreture }
+T_1 =T_static (T_inlet_01,P_inlet_01,C_1)
+
+{Calculation of the inlet static Density}
+rho_1 = DENSITY(Air_ha,S=s_01,T=T_1)
+
+{Calculation of the engine mass flow rate }
+m_dot_1 = A_1 * C_1 * rho_1 
+m_dot_2 = m_dot_1
+
+{Calculation of the inlet spacific enthalpy }
+h_1 = ENTHALPY(Air_ha,T=T_1,V=(1/rho_1))
+
+{Calculation of the inlet static presure}
+P_1 =PRESSURE(Air_ha,T=T_1,s=s_1)
+
+{Calculation of the total enthalpy at the inlet}
+h_t1 = h_1 + ((C_1^2*convert(m^2/s^2,kJ/kg))/2)
+sound_1 = SOUNDSPEED(Air_ha,S=S_1,V=1/rho_1)
+M_1  = C_1/sound_1
+
+
+
+
+
+ {Calculation of the outlet radial velocity}
+U_2_blade =(convert(rpm,rad/s)*omega_1)*r_outlet_2    "impeler speed at the inlet meredenal line"
+
+{Calculation of the inlet spacific enthalpy accourding to the rotating frame of refrance }
+h_bar_t1 =h_t1+((U_1*C_u1)*convert(m^2/s^2,kJ/kg))+((U_1^2*convert(m^2/s^2,kJ/kg))/2)
+
+{Calculation of the idel outer spacific enthalpy accourding to the rotating frame of refrance}
+h_bar_t2 = h_bar_t1 + ((U_2_blade^2-U_1^2)*convert(m^2/s^2,kJ/kg))/2
+
+{Calculation of the outer area}
+A_2 = ((2*pi*r_outlet_2)-((Z_sb+Z_fb)*t_blade_outlet))*b_2
+
+{Calculation of the impeller Slip Factor PARAMETERS}
+epsilon =((r_inlet_iner+r_inlet_outer)/2)/r_outlet_2   "impeller meanline radius ratio"
+Z= Z_fb + ((Z_sb*L_sb)/L_fb) "impeller effective number of blades"
+
+"====================================================================================================="
+
+
+$IF Type$ =  'bakwerd' 
+y=1 
+$ELSE
+y=2 
+$ENDIF
+
+
+Call Blade_Type (y,s_2,rho_1, m_dot_2,A_2,beta_2,Z,U_2_blade,h_bar_t2: alpha_2,rho_2,U_2,C_2,C_n2,C_u2,sigma_impller,T_2 ) 
+P_2 = PRESSURE(Air_ha,T=T_2,s=s_2)
+sound_2 = SOUNDSPEED(Air_ha,S=S_1,V=1/rho_2)
+M_2  = C_2/sound_2
+h_2_stagnation=ENTHALPY(Air_ha,T=T_2,V=(1/rho_2))+((C_2^2)/2000)
+
+
+"++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+
+" chek Calculation at the outer throut " 
+
+T_stagnation_2 = T_stagnation ( T_2 , S_1 , C_2)
+
+Call outlet_throut (r_outlet_2,Z_fb,Z_sb,t_blade_outlet,beta_2,b_2,U_2,m_dot_1,T_stagnation_2,S_1:rho_th_2,W_th_outlet,W_u_th_outlet,W_n_th_outlet,T_th_2,h_th_outlet,A_th_outlet)
+sound_th_2 = SOUNDSPEED(Air_ha,S=S_1,V=1/rho_th_2)
+M_th_outlet  = W_th_outlet/sound_th_2
+
+
+"++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+
+
+" chek Calculation at the inlet throut " 
+
+h_th_inlet = (((pi*(r_inlet_iner+r_inlet_outer ))/Z_fb)-(t_blade_inlet*Z_fb))*cos(abs(90-beta_1))
+A_th_inlet = h_th_inlet * (r_inlet_outer-r_inlet_iner)
+W_u_th_inlet = U_1
+W_th_inlet =W_u_th_inlet / cos(beta_1)
+W_n_th_inlet = W_u_th_inlet / sin(beta_1)
+rho_th_inlet =m_dot_1/(A_th_inlet*W_th_inlet*Z_fb)
+S_1=S_th_inlet
+sound_th_inlet = SOUNDSPEED(Air_ha,S=S_1,V=1/rho_th_inlet)
+M_th_inlet = W_th_inlet/sound_th_inlet 
+T_th_inlet = TEMPERATURE(Air_ha,S=S_1,V=1/rho_th_inlet)
+
+
+"+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+
+"Calculation of the vaneless_diffuser Working conditions "
+
+
+L_MeanChanal_DiffLess = 0.003 "insert  the mean vanless diffuser length "
+
+Call venless_diffuser (r_venless_out,b_venless_out,m_dot_1,S_1,C_u2,T_stagnation_2:C_n3,C_u3, C_3,T_stagnation_3,T_3,rho_3,A_3)
+
+
+P_3 = PRESSURE(Air_ha,T=T_3,s=s_1)
+alpha_3=ARCTAN(C_n3/C_u3)
+
+
+"++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+
+"Calculation of the vaned_diffuser Working conditions "
+
+
+
+
+ "Calculation of the vaned diffuser inlet condition"
+
+Call vened_inlet_diffuser (beta_4,r_vaned_inlet,b_vaned_inlet,Z_diffuser,m_dot_1,T_stagnation_3,S_1,C_u3,t_vaned_inlet:A_4,C_n4,C_u4,C_4,T_stagnation_4,T_4,rho_4)
+
+P_4 = PRESSURE(Air_ha,T=T_4,s=s_1)
+
+"+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+
+"Calculation of the vaned diffuser outlet condition "
+
+Call vened_outlet_diffuser (r_vaned_outlet,b_vaned_outlet,Z_diffuser,t_vaned_outlet,m_dot_1,T_stagnation_4,beta_5,S_1:A_5,C_n5,C_5,C_u5,T_5,T_stagnation_5,rho_5)
+
+
+P_5 = PRESSURE(Air_ha,T=T_5,s=s_1)
+h_5 = ENTHALPY(Air_ha,T=T_5,s=s_1)
+h_t5 = h_5 + ((C_5^2*convert(m^2/s^2,kJ/kg))/2)
+
+"+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+
+"Calculation of the diffuser inlet throut condetion"
+
+Call vened_throut_diffuser (beta_th_diff,t_vaned_inlet,h_th_diff,beta_4,A_4,Z_diffuser,b_vaned_inlet,m_dot_1,T_stagnation_3,S_1:A_th_diff,C_n_th_diff,C_th_diff,T_stagnation_th_diff,C_u_th_diff,T_th_diff,rho_th_diff)
+
+P_th_diff = PRESSURE(Air_ha,T=T_th_diff,S=S_1)
+sound_th_diff= SOUNDSPEED(Air_ha,S=S_1,V=1/rho_th_diff)
+M_th_diff= C_th_diff/sound_th_diff
+
+
+
+"+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+
+"Loss Calculation"
+"++++++_______________++++++++++_______________+++++++++++++___________++++++++"
+"_____________________________________________"
+"{}{}{}{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}{}{}{}{}"
+"{}{}{}{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}{}{}{}{}"
+"{}{}{}{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}{}{}{}{}"
+"{}{}{}{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}{}{}{}{}"
+
+"Inlet isedance loss Calculation"
+
+
+DELTA_H_ii = (0.5*(U_1-(((1/tan(beta_blade1))*m_dot_1)/(A_1*rho_1))))/1000
+
+"diffuser insedance loss"
+
+DELTA_H_di = (0.5*(((sigma_impller*U_2_blade)-((1/tan(beta_4))*C_u4))^2))/1000
+
+"{}{}{}{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}{}{}{}{}"
+"{}{}{}{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}{}{}{}{}"
+"{}{}{}{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}{}{}{}{}"
+"_____________________{{{{{{{{{{{{{{{{{{{{{{{{{{{}}}}}}}}}}}}}}}}}}}}}}}}}}}}__________________"
+"_____________________________________________"
+
+"Friction loss Calculation"
+
+
+"{}{}{}{}{}{}{}{}{}{}{}"
+ "impellar friction loss calculation "
+
+"inlet  rounalds number"
+round_1= Z_fb* (r_inlet_outer-r_inlet_iner)*(((r_inlet_outer+r_inlet_iner)/2)-((Z_fb*t_blade_inlet)/Z_fb))
+D_H_1 = (4*(A_1))/(Z_fb*round_1)
+MU_1 = VISCOSITY(Air_ha,T=T_1,S=S_1)
+Re_1 = (rho_1*C_1*D_H_1)/MU_1
+
+"outlet  rounalds number"
+round_2 = (2*((2*pi*r_outlet_2)-((Z_sb+Z_fb)*t_blade_outlet)))/(Z_sb+Z_fb)
+D_H_2 = (4*A_2)/((Z_sb+Z_fb)*round_2)
+MU_2 = VISCOSITY(Air_ha,T=T_2,S=S_1)
+Re_2 = (rho_2*C_2*D_H_2)/MU_2
+
+"inlet throut rounalds number"
+round_th_1 = 2*(h_th_inlet+ abs(r_inlet_iner-r_inlet_outer ))
+D_H_th_1 = (4*A_th_inlet)/(round_th_1)
+MU_th_1 = VISCOSITY(Air_ha,T=T_th_inlet,S=S_1)
+Re_th_1 = (rho_th_inlet*W_th_inlet*D_H_th_1)/MU_th_1
+
+"outer throut rounalds number"
+round_th_2 = 2*(h_th_outlet+b_2 )
+D_H_th_2 = (4*A_th_outlet)/(round_th_2)
+MU_th_2 = VISCOSITY(Air_ha,T=T_th_2,S=S_1)
+Re_th_2 = (rho_th_2*W_th_outlet*D_H_th_2)/MU_th_2
+
+"Avrege rounalds number"
+Re_avrg_i = (Re_1+Re_2+Re_th_1+Re_th_2)/4
+D_H_avrg_i = (D_H_1+D_H_2+D_H_th_1+D_H_th_2)/4
+f_i = 0.3164*((Re_avrg_i)^(-0.25))
+DELTA_H_fi = (4*f_i*L_MeanChanal_i*(W_1^2))/(2000*D_H_avrg_i)
+
+
+
+"{}{}{}{}{}{}{}{}{}{}{}"
+
+ "vaned diffuser friction loss calculation "
+
+"inlet  rounalds number"
+round_4 = (2*((2*pi*r_vaned_inlet)-((Z_diffuser)*t_vaned_inlet)))/Z_diffuser
+D_H_4 = (4*A_4)/((Z_diffuser)*round_4)
+MU_4 = VISCOSITY(Air_ha,T=T_4,S=S_1)
+Re_4 = (rho_4*C_4*D_H_4)/MU_4
+
+"outlet  rounalds number"
+round_5 = (2*((2*pi*r_vaned_outlet)-((Z_diffuser)*t_vaned_outlet)))/Z_diffuser
+D_H_5 = (4*A_5)/((Z_diffuser)*round_5)
+MU_5 = VISCOSITY(Air_ha,T=T_5,S=S_1)
+Re_5 = (rho_5*C_5*D_H_5)/MU_5
+
+"inlet throut rounalds number"
+round_th_4 = 2*(h_th_diff+b_vaned_inlet)
+D_H_th_4 = (4*A_th_diff)/(round_th_4)
+MU_th_4 = VISCOSITY(Air_ha,T=T_th_diff,S=S_1)
+Re_th_4 = (rho_th_diff*C_th_diff*D_H_th_4)/MU_th_4
+
+"Avrege rounalds number"
+Re_avrg_d = (Re_4+Re_5+Re_th_4)/3
+D_H_avrg_d = (D_H_4+D_H_5+D_H_th_4)/3
+f_d = 0.3164*((Re_avrg_d)^(-0.25))
+DELTA_H_fd = (4*f_d*L_MeanChanal_diff*(C_4^2))/(2000*D_H_avrg_d)
+
+
+
+"{}{}{}{}{}{}{}{}{}{}{}{}{}"
+
+ "vaneless diffuser friction loss calculation "
+
+"inlet  rounalds number"
+round_DiffLess_2 = (2*((2*pi*r_outlet_2)))
+D_H_DiffLess_2 = (4*(A_2+((Z_sb+Z_fb)*t_blade_outlet )))/(round_DiffLess_2)
+MU_DiffLess_2 = VISCOSITY(Air_ha,T=T_2,S=S_1)
+Re_DiffLess_2 = (rho_2*C_2*D_H_DiffLess_2)/MU_DiffLess_2
+
+"outlet  rounalds number"
+round_DiffLess_3 = 2*((2*pi*r_venless_out)+(b_venless_out))
+D_H_DiffLess_3 = (4*A_3)/round_DiffLess_3
+MU_DiffLess_3 = VISCOSITY(Air_ha,T=T_3,S=S_1)
+Re_DiffLess_3 = (rho_3*C_3*D_H_DiffLess_3)/MU_DiffLess_3
+
+"Avrege rounalds number"
+Re_avrg_DiffLess = (Re_DiffLess_2+Re_DiffLess_3)/2
+D_H_avrg_DiffLess  = (D_H_DiffLess_2+D_H_DiffLess_3)/2
+f_DiffLess = 0.3164*((Re_avrg_DiffLess)^(-0.25))
+DELTA_H_fDiffLess  = (4*f_DiffLess*L_MeanChanal_DiffLess*(C_2^2))/(2000*D_H_avrg_DiffLess)
+
+"{}{}{}{}{}{}{}{}{}{}{}{}{}"
+
+"Calculation of the total insedance and friction losses "
+DELTA_H_i_f_total = DELTA_H_fDiffLess+DELTA_H_fd+DELTA_H_fi+DELTA_H_di+DELTA_H_ii
+
+
+"++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+
+"CLerance loss clalculation"
+
+DELTA_ETA_cl = (0.3*l_cl)/b_2  "calculation of the change in effetioncy du to clearance"
+
+"+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+
+"Claculation backflow loss"
+
+DELTA_ETA_bf = 0.03 "calculation of the change in effetioncy du to backflow"
+
+"++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+
+"Calculation of the over all effetioncy"
+
+DELTA_H_ideal = (h_t5 - h_t01)
+ETA_total = (DELTA_H_ideal/(DELTA_H_ideal+DELTA_H_i_f_total))-DELTA_ETA_cl-DELTA_ETA_bf
+
+"++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+ "Calculation of the impeller effetioncy "
+
+DELTA_H_i_f_impeller =DELTA_H_ii+DELTA_H_fi
+
+ETA_impeller =  (DELTA_H_ideal/(DELTA_H_ideal+DELTA_H_i_f_impeller))-DELTA_ETA_cl-DELTA_ETA_bf
+
+"++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+"calculation of the real discharge enthalpy"
+
+DELTA_H_real_overall =(h_t5-h_t01)/ETA_total
+h_5_stegnation_real = DELTA_H_real_overall+ h_t01
+h_2_stegnation_real = h_5_stegnation_real
+
+"++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+"Calculation of the real discharge conditions"
+h_2_real=h_2_stegnation_real-((C_2^2)/2000)
+T_2_real = TEMPERATURE(Air_ha,h=h_2_real,v=(1/rho_2))
+P_2_real = PRESSURE(Air_ha,h=h_2_real,v=(1/rho_2))
+S_2_real= ENTROPY(Air_ha,h=h_2_real,v=(1/rho_2))
+T_stagnation_2_real = T_stagnation ( T_2_real , S_2_real , C_2)
+
+"++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+"Calculation of the real overall discharge conditions "
+
+rho_5_real = rho_5
+
+Call Real_discharge (m_dot_1,A_5,beta_5,T_stagnation_2_real,h_5_stegnation_real,rho_5_real:C_n5_real,C_5_real,C_u5_real,T_5_real)
+
+
+P_5_real = PRESSURE(Air_ha,T=T_5_real,v=1/rho_5_real)
+S_5_real = ENTROPY(Air_ha,T=T_5_real,v=1/rho_5_real)
+
+r  = P_5_real / P_inlet_01
